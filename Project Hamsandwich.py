@@ -3,8 +3,6 @@ import xlrd
 from xlwt import easyxf, Workbook, Font, XFStyle, Alignment
 from xlutils.copy import copy
 import datetime
-import win32com.client as win32
-from openpyxl import Workbook, load_workbook
 import shutil
 
 
