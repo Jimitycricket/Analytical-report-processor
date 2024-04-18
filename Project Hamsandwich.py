@@ -11,6 +11,14 @@ masterlist= r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation
 source_folder= r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/Unprocessed'
 destination_folder = r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/Processed'
 
+# Companies to calculate F values for manually
+f_values = ['3087', '3853', '8438', '18084', '6541A']
+
+# Companies to manually input time
+time_companies = ['3853', '3839A']
+
+
+
 date_style = XFStyle()
 date_style.num_format_str = 'yyyy/mm/dd'
 date_style.alignment = Alignment()
@@ -53,7 +61,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
             writable_workbook = copy(workbook)
             sheet = writable_workbook.get_sheet(0)
             
-            
+            sitecell = 3
             # Initialize a variable to track if the previous cell was empty
             previous_cell_empty = False
             style_with_border = easyxf('borders: bottom thin, right thin, left thin, top thin')
@@ -65,9 +73,11 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 if read_sheet.cell_value(row_index, 0) == 'pH':
                     # Found 'pH' in Column A, now move Column D value to Column C
                     lab_pH = True
+                    sitecell = 4
                     value_from_column_d = read_sheet.cell_value(row_index, 3)  # Get value from Column D
                     sheet.write(row_index, 2, value_from_column_d)  # Write value to Column C
                     sheet.write(row_index, 4, '')  # Optionally clear the original cell in Column D
+                    sheet.write(5, 4, '')
                     # reformat RDL column, as it's move if lab pH is measured
                     rdl_empty_start = 13
                     rdl_empty_end = deletable_rows_for_A_start
@@ -105,10 +115,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
                             sheet.write(row_index, 0, '')
 
                             print(f'Field pH found and cleared in row {row_index}')
-                elif lab_pH== False:
-                    col_f = sheet.col(5)  # Access column F
-                    col_width = 20  # Set column width to 20 characters wide
-                    col_f.width = col_width
+
 
                 # Check if the current cell is empty
                 if not cell_value:  # This checks for an empty string which indicates an empty cell
@@ -198,7 +205,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 sheet.write(5, 0, company_name, bold_style)
                 sheet.write(6, 0, billing_address, bold_style)
                 sheet.write(7, 0, city_postal_code, bold_style)
-                sheet.write(8, 3, (f'SITE: {site_address}'), bold_style)
+                sheet.write(8, sitecell, (f'SITE: {site_address}'), bold_style)
                 sheet.write(1, 0, "REGION OF PEEL", bold_style)
                 sheet.write(deletable_rows_for_A_start+7, 1, inspector_name)
                 #Red_text
@@ -233,16 +240,17 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 #styling date column with border
                 for col_index in range(4, 5):  # Columns D and E
                     sheet.write(deletable_rows_for_A_start + 6, col_index, "", style_with_border)
-                    sheet.write(deletable_rows_for_A_start + 6, 5, "", style_with_border)
+                    sheet.write(deletable_rows_for_A_start + 6, sitecell+1, "", style_with_border)
                 #styling inspector comment column w/ border
                 for col_index in range(1, 5):  # Columns B to E
                     sheet.write(deletable_rows_for_A_start+ 3, col_index, "", style_with_border)
-                    sheet.write(deletable_rows_for_A_start + 3, 5, "", style_with_border)
+                    sheet.write(deletable_rows_for_A_start + 3, sitecell+1, "", style_with_border)
                 #styling reviewed by column w/ border
                 for col_index in range(1, 3):
                     sheet.write(deletable_rows_for_A_start+6, col_index, "", style_with_border)
 
         lwm_number_int = int(lwm_number) if isinstance(lwm_number, (float, int)) else None
+        
 
         # Use lwm_number_int when constructing the filename
         if lwm_number_int is not None:
@@ -260,14 +268,20 @@ def read_rewrite_workbook(source_folder, destination_folder):
             new_file_path = os.path.join(destination_folder, f"{inspector_initials} - Report - {report_date_str} - {company_name} - LWM {lwm_number}.xls")
             writable_workbook.save(new_file_path)
             print(f"Saved {new_file_path} from {filename}")
+
         
 
-
-
-
-# Process workbooks and convert
-read_rewrite_workbook(source_folder, destination_folder)
-
+def process_files(destination_folder):
+    # Iterate through each file in the source folder
+    for filename in os.listdir(destination_folder):
+        if filename.lower().endswith('.xls'):
+            # Check if any of the specific LWM numbers are in the file name
+            for lwm_number in f_values:
+                if f"LWM {lwm_number} - SX" in filename:
+                    print(f"Calculate F value for this company: {lwm_number}")
+            for lwm_number in time_companies:
+                if f"LWM {lwm_number}" in filename:
+                    print(f'Input time for this company: {lwm_number}')
 
 def organize_files_by_inspector_companytype(destination_folder):
     # List all files in the source directory
@@ -299,6 +313,11 @@ def organize_files_by_inspector_companytype(destination_folder):
     print("Files have been organized.")
 
 
-# Usage example (Replace 'your_directory_path' with the actual path where your files are stored)
+# Process workbooks and convert
+read_rewrite_workbook(source_folder, destination_folder)
 
+# Prompts to process files further
+process_files(destination_folder)
+
+#Organizing Files by inspector
 organize_files_by_inspector_companytype(destination_folder)
