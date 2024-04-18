@@ -7,7 +7,7 @@ import shutil
 
 
 # Edit these file paths to your local settings
-masterlist= r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/masterlist.xls'
+masterlist= r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/Masterlist hamsandwich.xls'
 source_folder= r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/Unprocessed'
 destination_folder = r'C:/Users/17361/OneDrive - Region of Peel/Udrive/Desktop/Automation/Processed'
 
@@ -37,7 +37,7 @@ def find_master_data(masterlist, lwm_number):
             site_address= sheet.cell(row_index, 4).value
             inspector_email= sheet.cell(row_index, 8).value
             return contact_name, company_name, billing_address, city_postal_code, inspector_name, inspector_initials, site_address, inspector_email
-    return None, None, None, None, None, None, None  # Return None if LWM # is not found
+    return None, None, None, None, None, None, None, None # Return None if LWM # is not found
 
 
 
@@ -53,24 +53,63 @@ def read_rewrite_workbook(source_folder, destination_folder):
             writable_workbook = copy(workbook)
             sheet = writable_workbook.get_sheet(0)
             
-            # Iterate through each row starting from row 12 (index 11)
-            for row_index in range(11, read_sheet.nrows):
-                cell_value = read_sheet.cell_value(row_index, 0)  # Column A values
-                
-                # Check if the cell is empty
-                if not cell_value:  # This checks for an empty string which indicates an empty cell
-                    reference_point_for_comments = row_index
-                    # You can perform further actions here based on finding the empty cell
-                    break   # Exit the loop if you only care about the first empty cell found
-                # If you need to perform actions for every empty cell, remove the break statement
-                
+            
             # Initialize a variable to track if the previous cell was empty
             previous_cell_empty = False
-            
+            style_with_border = easyxf('borders: bottom thin, right thin, left thin, top thin')
             # Iterate through each row starting from row 12 (index 11)
             for row_index in range(11, read_sheet.nrows):
                 cell_value = read_sheet.cell_value(row_index, 2)  # Column C values
-                
+                lab_pH = False
+                # Read the value from Column A (index 0)
+                if read_sheet.cell_value(row_index, 0) == 'pH':
+                    # Found 'pH' in Column A, now move Column D value to Column C
+                    lab_pH = True
+                    value_from_column_d = read_sheet.cell_value(row_index, 3)  # Get value from Column D
+                    sheet.write(row_index, 2, value_from_column_d)  # Write value to Column C
+                    sheet.write(row_index, 4, '')  # Optionally clear the original cell in Column D
+                    # reformat RDL column, as it's move if lab pH is measured
+                    rdl_empty_start = 13
+                    rdl_empty_end = deletable_rows_for_A_start
+                    field_ph_rows= []
+                    for row_index in range(rdl_empty_start -3, rdl_empty_end):  # Adjust for zero-based indexing
+                        sheet.write(row_index, 4, '')  # Write an empty string 
+                        sheet.write(row_index, 3, '')
+
+                    for row_index in range(rdl_empty_start -3,rdl_empty_end):  # Restyling columns that were deleted
+                        sheet.write(row_index, 4, '', style_with_border)
+                        sheet.write(row_index, 3, '', style_with_border)
+                    # Change the width of Column E (index 4)
+                    # Column width units are in 1/256th of the width of the character '0' as it appears in the default sheet font
+                    col_e = sheet.col(4)  # Access column E
+                    col_width = 26  # Set column width to 20 characters wide
+                    col_e.width = col_width
+                    if  lab_pH:
+                        for row_index in range(read_sheet.nrows):
+                            if read_sheet.cell_value(row_index, 0) == 'Field pH':
+                                # Retrieve the row object
+                                row = sheet.row(row_index)
+                                # Set row height, 256 * height_in_points (20 is example for 20 points)
+                                row.height_mismatch = True  # Enable row height setting
+                                row.height = 2   
+
+                                # Optionally, clear or modify the cell's contents
+                                sheet.write(row_index, 2, '')
+                                sheet.write(row_index, 0, '')
+
+                        # If 'Field pH' rows are identified and 'pH' was found, clear or modify these rows
+                        for row_index in field_ph_rows:
+                            # Example: Clear contents of certain columns or the whole row
+                            # This clears the entire row; adjust as necessary
+                            sheet.write(row_index, 2, '')
+                            sheet.write(row_index, 0, '')
+
+                            print(f'Field pH found and cleared in row {row_index}')
+                elif lab_pH== False:
+                    col_f = sheet.col(5)  # Access column F
+                    col_width = 20  # Set column width to 20 characters wide
+                    col_f.width = col_width
+
                 # Check if the current cell is empty
                 if not cell_value:  # This checks for an empty string which indicates an empty cell
                     if previous_cell_empty:  # Check if the previous cell was also empty
@@ -86,6 +125,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
 
 
 
+
             #Writing empty cells for useless data
             #Writing empty cells for cells in column D from row 15 to deletable_rows_for_A_start
             rdl_empty_start = 13
@@ -93,7 +133,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
             for row_index in range(rdl_empty_start, rdl_empty_end):  # Adjust for zero-based indexing
                 sheet.write(row_index, 3, '')  # Write an empty string to column D (index 3)
             
-            style_with_border = easyxf('borders: bottom thin')
+            
                 #styling previous RDL column with border
             for row_index in range(rdl_empty_start,rdl_empty_end):  # Column D
                 sheet.write(row_index, 3, '', style_with_border)
@@ -109,24 +149,23 @@ def read_rewrite_workbook(source_folder, destination_folder):
                     sheet.write(row, 1, '')
                     sheet.write(row, 2, '')
                     sheet.write(row, 3, '')
-                    sheet.write(row, 4, '')     
+                    sheet.write(row, 4, '')  
+                    sheet.write(row, 5, '')   
                     sheet.write(deletable_rows_for_A_start + 6, 3, 'Date:',easyxf('align: horiz right'))     
                     sheet.write(deletable_rows_for_A_start + 3, 0, 'Inspectors Comments:', easyxf('align: horiz right'))
                     sheet.write(deletable_rows_for_A_start + 6, 0, 'Reviewed by:', easyxf('align: horiz right')) 
+                
                 sheet.write(5, 3, "")
 
-                #sheet.write(inspectors_comments, 0, "Inspectors Comments:")
-                #sheet.write(reviewed_by, 0, "Reviewed By:")
-            #Writing data into new sheet
-    
+
             # Use the value from cell E7 for LWM # to match with master list            
             read_sheet = workbook.sheet_by_index(0)
-            lwm_number = read_sheet.cell_value(13, 2)  # E7 (LWM #)
+            lwm_number = read_sheet.cell_value(13, 2)  # C14 (LWM #)
             date_cell = read_sheet.cell(11, 2)
             if date_cell.ctype == xlrd.XL_CELL_DATE:
                 date_tuple = xlrd.xldate_as_tuple(date_cell.value, workbook.datemode)
                 report_date = datetime.datetime(*date_tuple)
-                report_date_str = report_date.strftime('%Y%m%d')  # Format date as you like
+                report_date_str = report_date.strftime('%Y%m%d')  # Format date
             else:
                 report_date_str = 'Unknown-Date'
             if date_cell.ctype == xlrd.XL_CELL_DATE:
@@ -187,12 +226,6 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 sheet.write(6, 3, lwm_in_sheet, bold_style)
 
 
-            #finding inspector comments row#
-            for row_index in range(11, read_sheet.nrows):
-                cell_value = read_sheet.cell_value(row_index, 0)  # Corrected to Column A
-                if cell_value == "Inspector's Comments:":
-                    inspector_comments_row = row_index
-                    break  # Exit the loop once found
 
             if deletable_rows_for_A_start:
                 sheet.write(deletable_rows_for_A_start+6, 1, inspector_name, bold_style)
@@ -200,9 +233,11 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 #styling date column with border
                 for col_index in range(4, 5):  # Columns D and E
                     sheet.write(deletable_rows_for_A_start + 6, col_index, "", style_with_border)
+                    sheet.write(deletable_rows_for_A_start + 6, 5, "", style_with_border)
                 #styling inspector comment column w/ border
                 for col_index in range(1, 5):  # Columns B to E
                     sheet.write(deletable_rows_for_A_start+ 3, col_index, "", style_with_border)
+                    sheet.write(deletable_rows_for_A_start + 3, 5, "", style_with_border)
                 #styling reviewed by column w/ border
                 for col_index in range(1, 3):
                     sheet.write(deletable_rows_for_A_start+6, col_index, "", style_with_border)
