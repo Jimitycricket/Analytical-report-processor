@@ -60,15 +60,16 @@ def read_rewrite_workbook(source_folder, destination_folder):
             read_sheet = workbook.sheet_by_index(0)  # Assuming you want the first sheet
             writable_workbook = copy(workbook)
             sheet = writable_workbook.get_sheet(0)
-            
             sitecell = 3
-            # Initialize a variable to track if the previous cell was empty
-            previous_cell_empty = False
+
             style_with_border = easyxf('borders: bottom thin, right thin, left thin, top thin')
             # Iterate through each row starting from row 12 (index 11)
             for row_index in range(11, read_sheet.nrows):
-                cell_value = read_sheet.cell_value(row_index, 2)  # Column C values
+                cell_value = read_sheet.cell_value(row_index, 0)  # Column C values
                 lab_pH = False
+                metals = False
+                vorganics = False
+                svorganics = False
                 # Read the value from Column A (index 0)
                 if read_sheet.cell_value(row_index, 0) == 'pH':
                     # Found 'pH' in Column A, now move Column D value to Column C
@@ -94,6 +95,8 @@ def read_rewrite_workbook(source_folder, destination_folder):
                     col_e = sheet.col(4)  # Access column E
                     col_width = 26  # Set column width to 20 characters wide
                     col_e.width = col_width
+                    
+                    
                     if  lab_pH:
                         for row_index in range(read_sheet.nrows):
                             if read_sheet.cell_value(row_index, 0) == 'Field pH':
@@ -115,22 +118,64 @@ def read_rewrite_workbook(source_folder, destination_folder):
                             sheet.write(row_index, 0, '')
 
                             print(f'Field pH found and cleared in row {row_index}')
+                
+
+                if read_sheet.cell_value(row_index, 0) == 'Total Metals':
+                    row_below = int(row_index) + 1
+                    print(f'metals found in row {row_index}')    
+                    
+                    if read_sheet.cell_value(row_below, 2) == '':
+                        metals = True
+                
+                        if metals == True:
+                                    # Retrieve the row object
+                                    row = sheet.row(row_index)
+                                    # Set row height, 256 * height_in_points (20 is example for 20 points)
+                                    row.height_mismatch = True  # Enable row height setting
+                                    row.height = 2     
+
+                if read_sheet.cell_value(row_index, 0) == 'Volatile Organics':
+                    row_below = int(row_index) + 1
+                    print(f'Volatile Organics found in row {row_index}')    
+                    
+                    if read_sheet.cell_value(row_below, 2) == '':
+                        vorganics = True
+                
+                        if vorganics == True:
+                                    # Retrieve the row object
+                                    row = sheet.row(row_index)
+                                    # Set row height, 256 * height_in_points (20 is example for 20 points)
+                                    row.height_mismatch = True  # Enable row height setting
+                                    row.height = 2       
+
+                if read_sheet.cell_value(row_index, 0) == 'Semi-Volatile Organics':
+                    row_below = int(row_index) + 1
+                    print(f'Semi-volatile found in row {row_index}')    
+                    
+                    if read_sheet.cell_value(row_below, 2) == '':
+                        svorganics = True
+                
+                        if svorganics == True:
+                                    # Retrieve the row object
+                                    row = sheet.row(row_index)
+                                    # Set row height, 256 * height_in_points (20 is example for 20 points)
+                                    row.height_mismatch = True  # Enable row height setting
+                                    row.height = 2         
+                
+
 
 
                 # Check if the current cell is empty
                 if not cell_value:  # This checks for an empty string which indicates an empty cell
-                    if previous_cell_empty:  # Check if the previous cell was also empty
-                        deletable_rows_for_A_start = row_index - 1  # Mark the start row for deletion
-                        break  # Exit the loop after finding two consecutive empty cells
-                    previous_cell_empty = True  # Mark this cell as empty for the next iteration
-                else:
-                    previous_cell_empty = False  # Reset if the current cell is not empty
-                
+                    #if previous_cell_empty:  # Check if the previous cell was also empty
+                    deletable_rows_for_A_start = row_index   # Mark the start row for deletion
+                    break  # Exit the loop after finding two consecutive empty cells
+
                 # Reset the flag if no consecutive empty cells are found in this iteration
                 if row_index == read_sheet.nrows - 1 and not deletable_rows_for_A_start:
                     print(f"No consecutive empty cells found in Column C starting from row 12 in {filename}")
 
-
+                 
 
 
             #Writing empty cells for useless data
