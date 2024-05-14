@@ -87,7 +87,13 @@ def read_rewrite_workbook(source_folder, destination_folder):
                     lab_pH_only = True
 
                 
-                if not lwm_number == '1244-SX':
+
+
+
+
+
+                # Check conditions
+                if lwm_number != '1244-SX' and not str(lwm_number).strip().startswith('PIA'):
 
                     if lab_pH_only:
                         lab_pH = True
@@ -267,20 +273,12 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 lwm_number_int = int(lwm_number)
                 # Formatting the number with ' - MX' suffix
                 lwm_number = str(lwm_number_int) + ' - MX'
-                lwm_in_sheet = 'Site Location: ' + lwm_number
-                if lab_pH and field_ph:
-                    sheet.write(6, 4, lwm_in_sheet, bold_style)
-                elif field_ph and not lab_pH:
-                    sheet.write(6, 3, lwm_in_sheet, bold_style)
+
+
 
             else:
                 # Fallback for any other unexpected types, treating it as a string
                 lwm_number = str(lwm_number) + ' - MX'
-                lwm_in_sheet = 'Site Location: ' + lwm_number
-                if lab_pH and field_ph:
-                    sheet.write(6, 4, lwm_in_sheet, bold_style)
-                elif field_ph and not lab_pH:
-                    sheet.write(6, 3, lwm_in_sheet, bold_style)
 
 
 
