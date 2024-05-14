@@ -65,65 +65,58 @@ def read_rewrite_workbook(source_folder, destination_folder):
             style_with_border = easyxf('borders: bottom thin, right thin, left thin, top thin')
             # Iterate through each row starting from row 12 (index 11)
             for row_index in range(11, read_sheet.nrows):
-                cell_value = read_sheet.cell_value(row_index, 0)  # Column C values
+                cell_value = read_sheet.cell_value(row_index, 0)  # Column A values
                 lab_pH = False
                 metals = False
                 vorganics = False
                 svorganics = False
-                # Read the value from Column A (index 0)
+                field_ph = False
+                lab_pH_only = False
+                both = False
+                lwm_number = read_sheet.cell_value(13, 2)  # C14 (LWM #)
+                
+                if read_sheet.cell_value(row_index, 0) == 'Field pH':
+                    field_ph = True
+                    field_ph_row = row_index
                 if read_sheet.cell_value(row_index, 0) == 'pH':
-                    # Found 'pH' in Column A, now move Column D value to Column C
                     lab_pH = True
-                    sitecell = 4
-                    value_from_column_d = read_sheet.cell_value(row_index, 3)  # Get value from Column D
-                    sheet.write(row_index, 2, value_from_column_d)  # Write value to Column C
-                    sheet.write(row_index, 4, '')  # Optionally clear the original cell in Column D
-                    sheet.write(5, 4, '')
-                    # reformat RDL column, as it's move if lab pH is measured
-                    rdl_empty_start = 13
-                    rdl_empty_end = deletable_rows_for_A_start
-                    field_ph_rows= []
-                    for row_index in range(rdl_empty_start -3, rdl_empty_end):  # Adjust for zero-based indexing
-                        sheet.write(row_index, 4, '')  # Write an empty string 
-                        sheet.write(row_index, 3, '')
+                    lab_pH_row = row_index
+                if field_ph == True and lab_pH == True:
+                    both = True
+                elif lab_pH == True and not field_ph:
+                    lab_pH_only = True
 
-                    for row_index in range(rdl_empty_start -3,rdl_empty_end):  # Restyling columns that were deleted
-                        sheet.write(row_index, 4, '', style_with_border)
-                        sheet.write(row_index, 3, '', style_with_border)
-                    # Change the width of Column E (index 4)
-                    # Column width units are in 1/256th of the width of the character '0' as it appears in the default sheet font
-                    col_e = sheet.col(4)  # Access column E
-                    col_width = 26  # Set column width to 20 characters wide
-                    col_e.width = col_width
+                
+                if not lwm_number == '1244-SX':
+
+                    if lab_pH_only:
+                        lab_pH = True
+                        sitecell = 4 
+                        value_from_column_d = read_sheet.cell_value(lab_pH_row, 3)
+                        sheet.write(lab_pH_row, 2, value_from_column_d)
+                        # Change column width to near nothing
+                        col_d = sheet.col(3)
+                        col_width = 20
+                        col_d.width = col_width
+                    elif both:
+                        sitecell = 4
+                        value_from_column_d = read_sheet.cell_value(lab_pH_row, 3)
+                        sheet.write(lab_pH_row, 2, value_from_column_d)
+                        row_height = 2
+                        field_ph_row.height = row_height
+                    elif field_ph and not lab_pH:
+                        pass
+                    
+                
                     
                     
-                    if  lab_pH:
-                        for row_index in range(read_sheet.nrows):
-                            if read_sheet.cell_value(row_index, 0) == 'Field pH':
-                                # Retrieve the row object
-                                row = sheet.row(row_index)
-                                # Set row height, 256 * height_in_points (20 is example for 20 points)
-                                row.height_mismatch = True  # Enable row height setting
-                                row.height = 2   
 
-                                # Optionally, clear or modify the cell's contents
-                                sheet.write(row_index, 2, '')
-                                sheet.write(row_index, 0, '')
 
-                        # If 'Field pH' rows are identified and 'pH' was found, clear or modify these rows
-                        for row_index in field_ph_rows:
-                            # Example: Clear contents of certain columns or the whole row
-                            # This clears the entire row; adjust as necessary
-                            sheet.write(row_index, 2, '')
-                            sheet.write(row_index, 0, '')
-
-                            print(f'Field pH found and cleared in row {row_index}')
                 
 
                 if read_sheet.cell_value(row_index, 0) == 'Total Metals':
                     row_below = int(row_index) + 1
-                    print(f'metals found in row {row_index}')    
-                    
+
                     if read_sheet.cell_value(row_below, 2) == '':
                         metals = True
                 
@@ -136,8 +129,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
 
                 if read_sheet.cell_value(row_index, 0) == 'Volatile Organics':
                     row_below = int(row_index) + 1
-                    print(f'Volatile Organics found in row {row_index}')    
-                    
+
                     if read_sheet.cell_value(row_below, 2) == '':
                         vorganics = True
                 
@@ -150,8 +142,7 @@ def read_rewrite_workbook(source_folder, destination_folder):
 
                 if read_sheet.cell_value(row_index, 0) == 'Semi-Volatile Organics':
                     row_below = int(row_index) + 1
-                    print(f'Semi-volatile found in row {row_index}')    
-                    
+
                     if read_sheet.cell_value(row_below, 2) == '':
                         svorganics = True
                 
@@ -182,13 +173,19 @@ def read_rewrite_workbook(source_folder, destination_folder):
             #Writing empty cells for cells in column D from row 15 to deletable_rows_for_A_start
             rdl_empty_start = 13
             rdl_empty_end = deletable_rows_for_A_start
-            for row_index in range(rdl_empty_start, rdl_empty_end):  # Adjust for zero-based indexing
-                sheet.write(row_index, 3, '')  # Write an empty string to column D (index 3)
+
             
+            rdl_columns = 3
+            for col_index in range(read_sheet.ncols):
+                if read_sheet.cell_value(13, col_index) == 'RDL':  # Row 14 is index 13
+                    rdl_columns = col_index 
+
+            for row_index in range(rdl_empty_start, rdl_empty_end):  # Adjust for zero-based indexing
+                sheet.write(row_index, rdl_columns, '', style_with_border)  # Write an empty string to rdl column
             
                 #styling previous RDL column with border
             for row_index in range(rdl_empty_start,rdl_empty_end):  # Column D
-                sheet.write(row_index, 3, '', style_with_border)
+                sheet.write(row_index, rdl_columns, '', style_with_border)
                 
                 #Deleting cells with no data, below the parameter table
                 for i in range(8):  # Loop from 0 to 7
@@ -208,7 +205,8 @@ def read_rewrite_workbook(source_folder, destination_folder):
                     sheet.write(deletable_rows_for_A_start + 6, 0, 'Reviewed by:', easyxf('align: horiz right')) 
                 
                 sheet.write(5, 3, "")
-
+            
+                
 
             # Use the value from cell E7 for LWM # to match with master list            
             read_sheet = workbook.sheet_by_index(0)
@@ -270,12 +268,19 @@ def read_rewrite_workbook(source_folder, destination_folder):
                 # Formatting the number with ' - MX' suffix
                 lwm_number = str(lwm_number_int) + ' - MX'
                 lwm_in_sheet = 'Site Location: ' + lwm_number
-                sheet.write(6, 3, lwm_in_sheet, bold_style)
+                if lab_pH and field_ph:
+                    sheet.write(6, 4, lwm_in_sheet, bold_style)
+                elif field_ph and not lab_pH:
+                    sheet.write(6, 3, lwm_in_sheet, bold_style)
+
             else:
                 # Fallback for any other unexpected types, treating it as a string
                 lwm_number = str(lwm_number) + ' - MX'
                 lwm_in_sheet = 'Site Location: ' + lwm_number
-                sheet.write(6, 3, lwm_in_sheet, bold_style)
+                if lab_pH and field_ph:
+                    sheet.write(6, 4, lwm_in_sheet, bold_style)
+                elif field_ph and not lab_pH:
+                    sheet.write(6, 3, lwm_in_sheet, bold_style)
 
 
 
